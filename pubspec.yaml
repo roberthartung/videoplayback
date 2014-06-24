@@ -1,0 +1,4 @@
+name: videoplayback
+description: Videoplayback
+dependencies:
+  browser: any
