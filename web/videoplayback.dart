@@ -3,27 +3,43 @@ import 'dart:async';
 import 'dart:typed_data';
 
 void main() {
-  // int offset = 0;
-  int chunkSize = 500000;
-  
-  // 0..n
-  // n+1 .. 2*n
+  int chunkSize = 1000000;
   
   MediaSource ms = new MediaSource();
   VideoElement video = new Element.tag('video');
   
+  print(video.canPlayType('video/mp4; codecs="mp4v.20.8"'));
+  print(video.canPlayType('video/mp4; codecs="avc1.42E01E"'));
+  print(video.canPlayType('video/mp4; codecs="avc1.42E01E, mp4a.40.2"'));
+  print(video.canPlayType('video/ogg; codecs="theora"'));
+  print(video.canPlayType('video/webm; codecs="vp8, vorbis"'));
+  
+  ms.addEventListener('sourceclosed', (Event e) {
+    print('sourceclosed');
+  });
+
+  ms.addEventListener('sourceended', (Event e) {
+    print('sourceended');
+  });
+  
   ms.addEventListener('sourceopen', (Event e) {
     print('sourceopen ' + video.currentSrc);
-    SourceBuffer sourceBuffer = ms.addSourceBuffer('video/webm; codecs="vorbis,vp8"');
+    SourceBuffer sourceBuffer = ms.addSourceBuffer('video/mp4; codecs="avc1.64001f,mp4a.40.2"'); // video/webm; codecs="vorbis,vp8"
+    sourceBuffer.addEventListener("update", (Event e) {
+      print('update on sourceBuffer');
+    }, false);
+    
     request(int offset) {
-      String requestUrl = 'http://media.streaming.mecaso.ch/vp.php?range=${offset}-'+(offset+chunkSize-1).toString()+'&type=webm';
-      // print('request $offset .. $requestUrl');
+      // &type=webm
+      String requestUrl = 'http://streaming.mecaso.ch/vp.php?range=${offset}-'+(offset+chunkSize-1).toString()+'';
+      //print('request $offset .. $requestUrl');
       HttpRequest.request(requestUrl, responseType: 'arraybuffer').then((HttpRequest r) {
         ByteBuffer bb = r.response;
         
         print('append... $offset');
         sourceBuffer.appendBuffer(bb);
-        print(sourceBuffer.buffered.length);
+        // print(sourceBuffer.buffered.length);
+        
         // print('startWindow: ' + sourceBuffer.appendWindowStart.toString());
          if(video.paused) {
            print('paused');
@@ -35,10 +51,10 @@ void main() {
          if(bb.lengthInBytes == chunkSize) {
            //video.onWaiting.listen((e) => request(offset+chunkSize));
            //video.onStalled.listen((e) => request(offset+chunkSize));
-           new Timer.periodic(new Duration(milliseconds: 500), (Timer t) {
-             
-             print('readyState: ' + video.readyState.toString());
-             // request(offset+chunkSize);
+           // new Timer.periodic(new Duration(milliseconds: 500), (Timer t) {
+           new Timer(new Duration(milliseconds: 500), () {
+             // print('readyState: ' + video.readyState.toString());
+             request(offset+chunkSize);
            });
          } else {
            print('end');
